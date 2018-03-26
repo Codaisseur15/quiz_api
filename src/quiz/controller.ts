@@ -1,10 +1,10 @@
-import { JsonController, Param, BadRequestError, NotFoundError, Get, Body, Patch, Delete, HttpCode } from 'routing-controllers'
+import { JsonController, Param, BadRequestError, NotFoundError, Get, Body, Patch, Delete, HttpCode, Post } from 'routing-controllers'
 import { Quiz, Question, Answer } from './entities'
 import { Validate } from 'class-validator'
 
 @JsonController()
 export default class QuizController {
-  
+
   @Get('/quizzes')
   @HttpCode(201)
   getQuizes() {
@@ -17,7 +17,7 @@ export default class QuizController {
   ) {
    return Quiz.findOneById(quizId)
   }
-  
+
   @Post("/quiz")
   @HttpCode(201)
   async create(
