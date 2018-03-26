@@ -7,8 +7,7 @@ const port = process.env.PORT || 4008
 
 const app = createKoaServer({
   controllers: [
-    QuizController,
-    //..
+    QuizController
   ]
 })
 
