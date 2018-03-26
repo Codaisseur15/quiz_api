@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from 'typeorm'
 import { BaseEntity } from 'typeorm/repository/BaseEntity'
-import { IsString, IsNumber, IsBoolean } from 'class-validator'
+import { IsString, IsBoolean } from 'class-validator'
 
 @Entity()
 export class Quiz extends BaseEntity {
