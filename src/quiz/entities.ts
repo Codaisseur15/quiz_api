@@ -7,11 +7,11 @@ export class Quiz extends BaseEntity {
 
   @PrimaryGeneratedColumn()
   id?: number;
-
+  
   @IsString()
   @Column('text', { nullable: false })
   title: string;
-
+  
   @OneToMany(_ => Question, question => question.quiz, {eager: true})
   question: Question[]
 
@@ -30,10 +30,10 @@ export class Question extends BaseEntity {
   @IsString()
   @Column('text', {nullable:false})
   type: string
-
+  
   @ManyToOne(_ => Quiz, quiz => quiz.question,{onDelete: 'CASCADE'})
   quiz: Quiz
-
+  
   @OneToMany(_ => Answer, answer => answer.question, {eager: true})
   answer: Answer[]
 

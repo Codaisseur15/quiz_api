@@ -4,6 +4,12 @@ import { Validate } from 'class-validator'
 
 @JsonController()
 export default class QuizController {
+  
+  @Get('/quizzes')
+  @HttpCode(201)
+  getQuizes() {
+   return Quiz.find()
+  }
 
   @Get('/quizzes/:id([0-9]+)')
   @HttpCode(201)
@@ -11,11 +17,31 @@ export default class QuizController {
   ) {
    return Quiz.findOneById(quizId)
   }
-
-  @Get('/quizzes')
+  
+  @Post("/quiz")
   @HttpCode(201)
-  getQuizes() {
-   return Quiz.find()
+  async create(
+    @Body()
+    quiz: Quiz,
+    answer: Answer,
+    question: Question
+  ) {
+
+  const entity = await Quiz.create({
+      title: quiz.title,
+      question: [{
+          text: question.text,
+          type: question.type,
+          quiz: quiz,
+          answer: [{
+              correct: answer.correct,
+              text: answer.text,
+              question: question
+            }]
+        }]
+    }).save();
+
+    return entity;
   }
 
   //@Authorized()
