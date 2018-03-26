@@ -12,7 +12,7 @@ export class Quiz extends BaseEntity {
   @Column('text', { nullable: false })
   title: string;
 
-  @OneToMany(_ => Question, question => question.quiz, {eager:true})
+  @OneToMany(_ => Question, question => question.quiz, {eager: true})
   question: Question[]
 
 }
@@ -31,10 +31,10 @@ export class Question extends BaseEntity {
   @Column('text', {nullable:false})
   type: string
 
-  @ManyToOne(_ => Quiz, quiz => quiz.question)
+  @ManyToOne(_ => Quiz, quiz => quiz.question,{onDelete: 'CASCADE'})
   quiz: Quiz
 
-  @OneToMany(_ => Answer, answer => answer.question, {eager:true})
+  @OneToMany(_ => Answer, answer => answer.question, {eager: true})
   answer: Answer[]
 
 }
@@ -53,7 +53,7 @@ export class Answer extends BaseEntity {
   @Column('text', { nullable: true})
   text: string
 
-  @ManyToOne(_ => Question, question => question.answer)
+  @ManyToOne(_ => Question, question => question.answer,{onDelete: 'CASCADE'})
   question: Question
 
 }
