@@ -53,19 +53,31 @@ export default class QuizController {
     return entityQuiz;
   }
 
-  @Patch('/quizzes/:id([0-9]+)')
+  @Patch('/quizzes')
   @HttpCode(201)
   async updateQuiz(
     @HeaderParam("x-user-role") userRole : string,
     @HeaderParam("x-user-id") userId : number,
-    @Param('id') quizId: number,
     @Body() updates
   ) {
     if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
-    const quiz = await Quiz.findOneById(quizId)
+    const quiz = await Quiz.findOneById(updates.id)
     if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
-
     await Quiz.merge(quiz, updates).save();
+
+    const questions = updates.question
+    for (let i = 0; i < questions.length; i++) {
+        let question = await Question.findOneById(questions[i].id)
+        await Question.merge(question, questions[i]).save();
+
+        const answers = updates.question[i].answer
+        for (let j = 0; j < answers.length; j++) {
+          let answer = await Answer.findOneById(answers[j].id)
+          await Answer.merge(answer, answers[j]).save();
+        }
+    }
+
+    await Question
 
     return {
       message: 'You successfully changed the quiz'
