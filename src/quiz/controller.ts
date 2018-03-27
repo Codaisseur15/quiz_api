@@ -25,19 +25,20 @@ export default class QuizController {
     @Body()
     quiz: Quiz,
     answer: Answer,
-    question: Question
+    question: Question,
+    @HeaderParam("x-user-role") userRole : string,
+    @HeaderParam("x-user-id") userId : number,
   ) {
 
+  if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
   const entity = await Quiz.create({
       title: quiz.title,
       question: [{
           text: question.text,
           type: question.type,
-          quiz: quiz,
           answer: [{
               correct: answer.correct,
-              text: answer.text,
-              question: question
+              text: answer.text
             }]
         }]
     }).save();
@@ -48,11 +49,12 @@ export default class QuizController {
   @Patch('/quizzes/:id([0-9]+)')
   @HttpCode(201)
   async updateQuiz(
-    @HeaderParam("x-user-role") userRole : string
+    @HeaderParam("x-user-role") userRole : string,
+    @HeaderParam("x-user-id") userId : number,
     @Param('id') quizId: number,
     @Body() updates
   ) {
-    if (userRole !== 'teacher') throw new NotFoundError('You are not authorised')
+    if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
     const quiz = await Quiz.findOneById(quizId)
     if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
 
@@ -69,9 +71,10 @@ export default class QuizController {
    @HttpCode(201)
    async deleteQuiz(
      @Param('id') id: number,
-     @HeaderParam("x-user-role") userRole : string
+     @HeaderParam("x-user-role") userRole : string,
+     @HeaderParam("x-user-id") userId : number
    ) {
-     if (userRole !== 'teacher') throw new NotFoundError('You are not authorised')
+     if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
      const quiz = await Quiz.findOneById(id)
      if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
      await quiz.remove()
