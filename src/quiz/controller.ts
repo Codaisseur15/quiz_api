@@ -31,19 +31,26 @@ export default class QuizController {
   ) {
 
   if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
-  const entity = await Quiz.create({
-      title: quiz.title,
-      question: [{
-          text: question.text,
-          type: question.type,
-          answer: [{
-              correct: answer.correct,
-              text: answer.text
-            }]
-        }]
+  const entityQuiz = await Quiz.create(quiz).save();
+
+  for (let i = 0; i < quiz.question.length; i++) {
+    const entityQuestion = await Question.create({
+      quiz: entityQuiz,
+      text: quiz.question[i].text,
+      type: quiz.question[i].type
     }).save();
 
-    return entity;
+    for (let j = 0; j < quiz.question[i].answer.length; j++) {
+      await Answer.create({
+        question: entityQuestion,
+        text: quiz.question[i].answer[j].text,
+        correct: quiz.question[i].answer[j].correct
+      }).save();
+    }
+  }
+
+
+    return entityQuiz;
   }
 
   @Patch('/quizzes/:id([0-9]+)')
@@ -58,8 +65,6 @@ export default class QuizController {
     const quiz = await Quiz.findOneById(quizId)
     if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
 
-    console.log(quiz)
-    console.log(updates)
     await Quiz.merge(quiz, updates).save();
 
     return {
