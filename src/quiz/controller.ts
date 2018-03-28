@@ -22,36 +22,31 @@ export default class QuizController {
   @Post("/quiz")
   @HttpCode(201)
   async create(
-    @Body()
-    quiz: Quiz,
-    answer: Answer,
-    question: Question,
+    @Body() quiz: Quiz,
     @HeaderParam("x-user-role") userRole : string,
     @HeaderParam("x-user-id") userId : number,
   ) {
 
-  if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
-  const entityQuiz = await Quiz.create(quiz).save();
+    if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
+    const entityQuiz = await Quiz.create(quiz).save();
 
-  for (let i = 0; i < quiz.question.length; i++) {
-    const entityQuestion = await Question.create({
-      quiz: entityQuiz,
-      text: quiz.question[i].text,
-      type: quiz.question[i].type
-    }).save();
-
-    for (let j = 0; j < quiz.question[i].answer.length; j++) {
-      await Answer.create({
-        question: entityQuestion,
-        text: quiz.question[i].answer[j].text,
-        correct: quiz.question[i].answer[j].correct
+    for (let i = 0; i < quiz.question.length; i++) {
+      const entityQuestion = await Question.create({
+        quiz: entityQuiz,
+        text: quiz.question[i].text,
+        type: quiz.question[i].type
       }).save();
-    }
-  }
 
-
-    return entityQuiz;
+      for (let j = 0; j < quiz.question[i].answer.length; j++) {
+        await Answer.create({
+          question: entityQuestion,
+          text: quiz.question[i].answer[j].text,
+          correct: quiz.question[i].answer[j].correct
+        }).save();
+      }
   }
+  return entityQuiz;
+}
 
   @Patch('/quizzes')
   @HttpCode(201)
@@ -65,19 +60,29 @@ export default class QuizController {
     if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
     await Quiz.merge(quiz, updates).save();
 
-    const questions = updates.question
-    for (let i = 0; i < questions.length; i++) {
-        let question = await Question.findOneById(questions[i].id)
-        await Question.merge(question, questions[i]).save();
+    updates.question.map(question => {
+      if (question.id === undefined) Question.create({
+            quiz: quiz,
+            text: question.text,
+            type: question.type
+          }).save()
+      else {
+        let old_question = Question.findOneById(question.id)
+        Question.merge(old_question, question)
+      }
 
-        const answers = updates.question[i].answer
-        for (let j = 0; j < answers.length; j++) {
-          let answer = await Answer.findOneById(answers[j].id)
-          await Answer.merge(answer, answers[j]).save();
+      question.answer.map(answer => {
+        if (answer.id === undefined) Answer.create({
+              question: question,
+              text: answer.text,
+              correct: answer.correct
+            }).save()
+        else {
+          let old_answer = Answer.findOneById(answer.id)
+          Question.merge(old_answer, answer)
         }
-    }
-
-    await Question
+      })
+    })
 
     return {
       message: 'You successfully changed the quiz'
