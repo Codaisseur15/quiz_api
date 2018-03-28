@@ -1,6 +1,9 @@
 import { JsonController, Param, BadRequestError, NotFoundError, Get, Body, Patch, Delete, HttpCode, Post, HeaderParam } from 'routing-controllers'
 import { Quiz, Question, Answer } from './entities'
 import { Validate } from 'class-validator'
+import * as request from 'superagent'
+
+const eventUrl = process.env.EVENT_URL || 'localhost:4009/events'
 
 @JsonController()
 export default class QuizController {
@@ -19,7 +22,7 @@ export default class QuizController {
    return Quiz.findOneById(quizId)
   }
 
-  @Post("/quiz")
+  @Post("/quizzes")
   @HttpCode(201)
   async create(
     @Body() quiz: Quiz,
@@ -45,6 +48,15 @@ export default class QuizController {
         }).save();
       }
   }
+
+const {hasId, save, remove, ...eventData} = entityQuiz
+
+ await request.post(eventUrl)
+ .send({
+   event: 'newquiz',
+   data: eventData
+ })
+
   return entityQuiz;
 }
 
