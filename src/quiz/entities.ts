@@ -19,7 +19,7 @@ export class Quiz extends BaseEntity {
 
 @Entity()
 export class Question extends BaseEntity {
-  
+
   @PrimaryGeneratedColumn()
   id?: number
 
