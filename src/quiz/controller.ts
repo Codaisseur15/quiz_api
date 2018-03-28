@@ -49,13 +49,7 @@ export default class QuizController {
       }
   }
 
-const {hasId, save, remove, ...eventData} = entityQuiz
-
- // await request.post(eventUrl)
- // .send({
- //   event: 'newquiz',
- //   data: eventData
- // })
+  const {hasId, save, remove, ...eventData} = entityQuiz
 
   return entityQuiz;
 }
@@ -72,14 +66,15 @@ const {hasId, save, remove, ...eventData} = entityQuiz
     if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
     await Quiz.merge(quiz, updates).save()
 
-    const all = await Promise.all(updates.question.map(async question => {
+    const allQuestions = await Promise.all(await updates.question.map(async question => {
       if (question.id === undefined) {
         const entity = await Question.create({
             quiz: quiz,
             text: question.text,
             type: question.type
           }).save()
-          question.answer.map(answer => {Answer.create({
+         await question.answer.map(async answer => {
+            await Answer.create({
             question: entity,
             text: answer.text,
             correct: answer.correct
@@ -88,10 +83,10 @@ const {hasId, save, remove, ...eventData} = entityQuiz
         }
       else {
         let old_question = await Question.findOneById(question.id)
-        question = await Question.merge(old_question, question).save()
+        let questionMerge = await Question.merge(old_question, question).save()
       }
 
-      question.answer.map(async answer => {
+    const allAnswers = await Promise.all(question.answer.map(async answer => {
         if (answer.id === undefined) {
           await Answer.create({
             question: question,
@@ -101,9 +96,9 @@ const {hasId, save, remove, ...eventData} = entityQuiz
       }
       else {
           let old_answer = await Answer.findOneById(answer.id)
-          answer = await Question.merge(old_answer, answer).save()
+           let answerMerge = await Question.merge(old_answer, answer).save()
         }
-      })
+      }))
     }))
 
     return {
