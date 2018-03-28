@@ -1,6 +1,9 @@
 import { JsonController, Param, BadRequestError, NotFoundError, Get, Body, Patch, Delete, HttpCode, Post, HeaderParam } from 'routing-controllers'
 import { Quiz, Question, Answer } from './entities'
 import { Validate } from 'class-validator'
+import * as request from 'superagent'
+
+const eventUrl = process.env.EVENT_URL || 'localhost:4009/events'
 
 @JsonController()
 export default class QuizController {
@@ -19,7 +22,7 @@ export default class QuizController {
    return Quiz.findOneById(quizId)
   }
 
-  @Post("/quiz")
+  @Post("/quizzes")
   @HttpCode(201)
   async create(
     @Body() quiz: Quiz,
@@ -45,6 +48,15 @@ export default class QuizController {
         }).save();
       }
   }
+
+const {hasId, save, remove, ...eventData} = entityQuiz
+
+ // await request.post(eventUrl)
+ // .send({
+ //   event: 'newquiz',
+ //   data: eventData
+ // })
+
   return entityQuiz;
 }
 
@@ -53,36 +65,46 @@ export default class QuizController {
   async updateQuiz(
     @HeaderParam("x-user-role") userRole : string,
     @HeaderParam("x-user-id") userId : number,
-    @Body() updates
+    @Body() updates : Quiz
   ) {
     if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
     const quiz = await Quiz.findOneById(updates.id)
     if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
-    await Quiz.merge(quiz, updates).save();
+    await Quiz.merge(quiz, updates).save()
 
-    updates.question.map(question => {
-      if (question.id === undefined) Question.create({
+    const all = await Promise.all(updates.question.map(async question => {
+      if (question.id === undefined) {
+        const entity = await Question.create({
             quiz: quiz,
             text: question.text,
             type: question.type
           }).save()
+          question.answer.map(answer => {Answer.create({
+            question: entity,
+            text: answer.text,
+            correct: answer.correct
+          }).save()
+        })
+        }
       else {
-        let old_question = Question.findOneById(question.id)
-        Question.merge(old_question, question)
+        let old_question = await Question.findOneById(question.id)
+        question = await Question.merge(old_question, question).save()
       }
 
-      question.answer.map(answer => {
-        if (answer.id === undefined) Answer.create({
-              question: question,
-              text: answer.text,
-              correct: answer.correct
-            }).save()
-        else {
-          let old_answer = Answer.findOneById(answer.id)
-          Question.merge(old_answer, answer)
+      question.answer.map(async answer => {
+        if (answer.id === undefined) {
+          await Answer.create({
+            question: question,
+            text: answer.text,
+            correct: answer.correct
+          }).save()
+      }
+      else {
+          let old_answer = await Answer.findOneById(answer.id)
+          answer = await Question.merge(old_answer, answer).save()
         }
       })
-    })
+    }))
 
     return {
       message: 'You successfully changed the quiz'
