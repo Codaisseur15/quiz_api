@@ -22,50 +22,67 @@ export default class QuizController {
   @Post("/quiz")
   @HttpCode(201)
   async create(
-    @Body()
-    quiz: Quiz,
-    answer: Answer,
-    question: Question,
+    @Body() quiz: Quiz,
     @HeaderParam("x-user-role") userRole : string,
     @HeaderParam("x-user-id") userId : number,
   ) {
 
-  if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
-  const entityQuiz = await Quiz.create(quiz).save();
+    if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
+    const entityQuiz = await Quiz.create(quiz).save();
 
-  for (let i = 0; i < quiz.question.length; i++) {
-    const entityQuestion = await Question.create({
-      quiz: entityQuiz,
-      text: quiz.question[i].text,
-      type: quiz.question[i].type
-    }).save();
-
-    for (let j = 0; j < quiz.question[i].answer.length; j++) {
-      await Answer.create({
-        question: entityQuestion,
-        text: quiz.question[i].answer[j].text,
-        correct: quiz.question[i].answer[j].correct
+    for (let i = 0; i < quiz.question.length; i++) {
+      const entityQuestion = await Question.create({
+        quiz: entityQuiz,
+        text: quiz.question[i].text,
+        type: quiz.question[i].type
       }).save();
-    }
+
+      for (let j = 0; j < quiz.question[i].answer.length; j++) {
+        await Answer.create({
+          question: entityQuestion,
+          text: quiz.question[i].answer[j].text,
+          correct: quiz.question[i].answer[j].correct
+        }).save();
+      }
   }
+  return entityQuiz;
+}
 
-
-    return entityQuiz;
-  }
-
-  @Patch('/quizzes/:id([0-9]+)')
+  @Patch('/quizzes')
   @HttpCode(201)
   async updateQuiz(
     @HeaderParam("x-user-role") userRole : string,
     @HeaderParam("x-user-id") userId : number,
-    @Param('id') quizId: number,
     @Body() updates
   ) {
     if (userRole !== 'teacher' && userId === null) throw new NotFoundError('You are not authorised')
-    const quiz = await Quiz.findOneById(quizId)
+    const quiz = await Quiz.findOneById(updates.id)
     if (!quiz) throw new NotFoundError(`Quiz does not exist!`)
-
     await Quiz.merge(quiz, updates).save();
+
+    updates.question.map(question => {
+      if (question.id === undefined) Question.create({
+            quiz: quiz,
+            text: question.text,
+            type: question.type
+          }).save()
+      else {
+        let old_question = Question.findOneById(question.id)
+        Question.merge(old_question, question)
+      }
+
+      question.answer.map(answer => {
+        if (answer.id === undefined) Answer.create({
+              question: question,
+              text: answer.text,
+              correct: answer.correct
+            }).save()
+        else {
+          let old_answer = Answer.findOneById(answer.id)
+          Question.merge(old_answer, answer)
+        }
+      })
+    })
 
     return {
       message: 'You successfully changed the quiz'
